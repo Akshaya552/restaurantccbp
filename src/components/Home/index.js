@@ -1,150 +1,99 @@
-import {Component} from 'react'
-import Loader from 'react-loader-spinner'
+import {useState, useEffect, useContext} from 'react'
 import Header from '../Header'
-import ItemCard from '../ItemCard'
+import DishItem from '../DishItem'
+import CategoryItem from '../CategoryItem'
+import CartContext from '../../context/CartContext'
 import './index.css'
 
-class Home extends Component {
-  state = {
-    recipelist: [],
-    activeTab: '',
-    cartItems: [],
-    isLoading: true,
-    name: [],
-  }
+const Home = () => {
+  const [isLoading, setIsLoading] = useState(true)
+  const [response, setResponse] = useState([])
+  const [activeCategoryId, setActiveCategoryId] = useState('')
 
-  componentDidMount() {
-    this.fetchRecipeList()
-  }
+  const {cartList, setRestaurantName} = useContext(CartContext)
 
-  fetchRecipeList = async () => {
-    const response = await fetch(
-      'https://apis2.ccbp.in/restaurant-app/restaurant-menu-list-details',
+  useEffect(() => {
+    const fetchRestaurantApi = async () => {
+      const api =
+        'https://apis2.ccbp.in/restaurant-app/restaurant-menu-list-details'
+      const apiResponse = await fetch(api)
+      const data = await apiResponse.json()
+      const updatedData = data[0].table_menu_list.map(eachMenu => ({
+        menuCategory: eachMenu.menu_category,
+        menuCategoryId: eachMenu.menu_category_id,
+        menuCategoryImage: eachMenu.menu_category_image,
+        categoryDishes: eachMenu.category_dishes.map(eachDish => ({
+          dishId: eachDish.dish_id,
+          dishName: eachDish.dish_name,
+          dishPrice: eachDish.dish_price,
+          dishImage: eachDish.dish_image,
+          dishCurrency: eachDish.dish_currency,
+          dishCalories: eachDish.dish_calories,
+          dishDescription: eachDish.dish_description,
+          dishAvailability: eachDish.dish_Availability,
+          dishType: eachDish.dish_Type,
+          addonCat: eachDish.addonCat,
+        })),
+      }))
+      setResponse(updatedData)
+      setRestaurantName(data[0].restaurant_name)
+      setActiveCategoryId(updatedData[0].menuCategoryId)
+      setIsLoading(false)
+    }
+    fetchRestaurantApi()
+  }, [])
+
+  const addItemToCart = () => {}
+
+  const removeItemFromCart = () => {}
+
+  const renderDishes = () => {
+    const {categoryDishes} = response.find(
+      eachCategory => eachCategory.menuCategoryId === activeCategoryId,
     )
-    const data = await response.json()
-    const name = {name: data[0].restaurant_name}
-    const recipelist = data[0].table_menu_list.map(each => ({
-      menuCategory: each.menu_category,
-      menuCategoryId: each.menu_category_id,
-      categoryDishes: each.category_dishes.map(e => ({
-        dishId: e.dish_id,
-        dishName: e.dish_name,
-        dishPrice: e.dish_price,
-        dishImage: e.dish_image,
-        dishCurrency: e.dish_currency,
-        dishCalories: e.dish_calories,
-        dishDescription: e.dish_description,
-        dishAvailability: e.dish_Availability,
-        dishType: e.dish_Type,
-        addonCat: e.addonCat.length > 0,
-      })),
-    }))
-    this.setState({
-      recipelist,
-      activeTab: recipelist[0].menuCategoryId,
-      isLoading: false,
-      name,
-    })
-  }
-
-  changeActivetab = id => {
-    this.setState({activeTab: id})
-  }
-
-  addItemToCart = dish => {
-    const {cartItems} = this.state
-    const isItemexists = cartItems.find(each => each.dishId === dish.dishId)
-    if (isItemexists) {
-      this.setState(prev => ({
-        cartItems: prev.cartItems.map(each =>
-          each.dishId === dish.dishId
-            ? {...each, quantity: each.quantity + 1}
-            : each,
-        ),
-      }))
-    } else {
-      const newDish = {...dish, quantity: 1}
-      this.setState(prev => ({cartItems: [...prev.cartItems, newDish]}))
-    }
-  }
-
-  removeItemFromCart = dish => {
-    const {cartItems} = this.state
-    const isAlreadyExists = cartItems.find(item => item.dishId === dish.dishId)
-    if (isAlreadyExists) {
-      this.setState(prev => ({
-        cartItems: prev.cartItems
-          .map(item =>
-            item.dishId === dish.dishId
-              ? {...item, quantity: item.quantity - 1}
-              : item,
-          )
-          .filter(item => item.quantity > 0),
-      }))
-    }
-  }
-
-  renderSuccessView = () => {
-    const {recipelist, activeTab, cartItems, name} = this.state
-    let dishesList = []
-    if (recipelist.find(each => each.menuCategoryId === activeTab)) {
-      const getSpecific = recipelist.filter(e => e.menuCategoryId === activeTab)
-      dishesList = getSpecific[0].categoryDishes
-    }
 
     return (
-      <>
-        <Header cart={cartItems} name={name} />
-        <div className="category-container">
-          <ul className="unordered-category-list">
-            {recipelist.map(each => (
-              <li className="category-list-item" key={each.menuCategoryId}>
-                <button
-                  type="button"
-                  onClick={() => this.changeActivetab(each.menuCategoryId)}
-                  className={
-                    each.menuCategoryId === activeTab
-                      ? 'category-button highlight'
-                      : 'category-button'
-                  }
-                >
-                  {each.menuCategory}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <ul className="dishes-container">
-          {dishesList.length === 0
-            ? null
-            : dishesList.map(each => (
-                <ItemCard
-                  dish={each}
-                  key={each.dishId}
-                  cartItems={cartItems}
-                  addItemToCart={this.addItemToCart}
-                  removeItemFromCart={this.removeItemFromCart}
-                />
-              ))}
-        </ul>
-      </>
+      <ul className="dishes-list-container">
+        {categoryDishes.map(eachDish => (
+          <DishItem
+            key={eachDish.dishId}
+            dishDetails={eachDish}
+            addItemToCart={addItemToCart}
+            removeItemFromCart={removeItemFromCart}
+          />
+        ))}
+      </ul>
     )
   }
 
-  render() {
-    const {isLoading} = this.state
-    return (
-      <>
-        {isLoading ? (
-          <div className="loader-container" data-testid="loader">
-            <Loader type="TailSpin" color="#3B82F6" height={50} width={50} />
-          </div>
-        ) : (
-          this.renderSuccessView()
-        )}
-      </>
-    )
+  const renderSpinner = () => (
+    <div className="spinner-container">
+      <div className="spinner-border" role="status" />
+    </div>
+  )
+
+  const onChangeCategory = category => {
+    setActiveCategoryId(category)
   }
+
+  return isLoading ? (
+    renderSpinner()
+  ) : (
+    <div className="home-background">
+      <Header cartItems={cartList} />
+      <ul className="tab-container">
+        {response.map(each => (
+          <CategoryItem
+            category={each}
+            key={each.menuCategoryId}
+            activeCategoryId={activeCategoryId}
+            onChangeCategory={onChangeCategory}
+          />
+        ))}
+      </ul>
+      {renderDishes()}
+    </div>
+  )
 }
 
 export default Home

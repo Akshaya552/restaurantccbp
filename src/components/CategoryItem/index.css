@@ -1,0 +1,23 @@
+.each-tab-item {
+  list-style-type: none;
+  text-align: center;
+  min-width: 210px;
+}
+
+.tab-category-button {
+  font-family: 'Roboto';
+  font-weight: 500;
+  font-size: 18px;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  height: 9vh;
+  background-color: transparent;
+  color: #2d2d2d;
+}
+
+.active-tab-item {
+  color: #ff6347;
+  border-bottom: 3px solid #ff6347;
+  font-weight: 600;
+}
